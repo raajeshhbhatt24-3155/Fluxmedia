@@ -1,0 +1,6 @@
+{
+  "name": "FLUXMEDIA - Transit OOH & DOOH Advertising Platform",
+  "description": "FLUXMEDIA connects brands and agencies with transit audiences through OOH, DOOH and programmatic advertising solutions across Malaysia.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
