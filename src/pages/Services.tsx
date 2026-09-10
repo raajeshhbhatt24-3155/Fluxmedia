@@ -172,7 +172,7 @@ export default function Services() {
         zeroOverlay={true}
       />
 
-      {/* Service 01: Direct Sales */}
+      {/* Service 01: Network Sales */}
       <section id="direct" className="scroll-mt-24 bg-white py-20 lg:py-28">
         <div className="max-w-[1300px] mx-auto px-6 lg:px-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
@@ -180,11 +180,11 @@ export default function Services() {
               <Reveal>
                 <Eyebrow className="mb-4">Service 01</Eyebrow>
                 <SectionTitle
-                  title="Direct Sales"
+                  title="Network Sales"
                   subtitle="Premium inventory. Strategic planning. Dedicated commercial expertise."
                 />
                 <p className="mt-6 text-slate-600 leading-relaxed text-sm sm:text-base font-sans">
-                  Our direct sales model gives advertisers and agencies exclusive access to available FLUXMEDIA inventory through a dedicated commercial team. We work with your campaign objectives, audience demographics, target transit lines, and budget to build high-impact media solutions.
+                  Our network sales model gives advertisers and agencies exclusive access to available FLUXMEDIA inventory through a dedicated commercial team. We work with your campaign objectives, audience demographics, target transit lines, and budget to build high-impact media solutions.
                 </p>
 
                 <div className="mt-8">
@@ -205,7 +205,7 @@ export default function Services() {
 
                 <div className="mt-8">
                   <CtaButton to="/contact" size="sm" variant="primary">
-                    REQUEST DIRECT MEDIA KIT
+                    REQUEST NETWORK MEDIA KIT
                   </CtaButton>
                 </div>
               </Reveal>

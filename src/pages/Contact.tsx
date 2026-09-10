@@ -25,7 +25,7 @@ const budgets = [
 ];
 
 const solutions = [
-  "Direct Media",
+  "Network Media",
   "Programmatic DOOH",
   "Not Sure — Recommend a Solution"
 ];
@@ -99,6 +99,7 @@ export default function Contact() {
   const [f, setF] = useState<FormData>(initial);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [lastMailto, setLastMailto] = useState("");
 
   const set =
     (k: keyof FormData) =>
@@ -113,6 +114,43 @@ export default function Contact() {
     }));
   };
 
+  const buildMailto = (data: FormData) => {
+    const recipient = "enquiry@fluxmedia.buzz";
+    const cc = "raajeshh@televeon.com";
+    const subject = `[Campaign Brief] ${data.brandName || data.company} - ${data.firstName} ${data.lastName}`;
+    const bodyLines = [
+      "FLUXMEDIA CAMPAIGN BRIEF & MEETING REQUEST",
+      "===========================================",
+      `Primary Recipient: ${recipient}`,
+      `CC: ${cc}`,
+      "",
+      "01 // CONTACT DETAILS",
+      `Name: ${data.firstName} ${data.lastName}`.trim(),
+      `Company: ${data.company}`,
+      `Job Title: ${data.jobTitle || "Not specified"}`,
+      `Email: ${data.email}`,
+      `Mobile / WhatsApp: ${data.mobile || "Not specified"}`,
+      "",
+      "02 // CAMPAIGN PARAMETERS",
+      `Brand / Advertiser: ${data.brandName}`,
+      `Industry: ${data.industry || "Not specified"}`,
+      `Primary Objective: ${data.objective}`,
+      `Requested Solutions: ${data.solutions.length ? data.solutions.join(", ") : "Open to Recommendation"}`,
+      `Target Environments: ${data.environments.length ? data.environments.join(", ") : "Open to Recommendation"}`,
+      `Geography: ${data.geography || "Open to Recommendation"}`,
+      `Flight Dates: ${data.startDate || "TBD"} to ${data.endDate || "TBD"}`,
+      `Estimated Budget: ${data.budget || "To Be Discussed"}`,
+      "",
+      "03 // ADDITIONAL BRIEF / NOTES",
+      data.message || "No additional brief provided.",
+      "",
+      "===========================================",
+      `Transmitted via FLUXMEDIA Portal to ${recipient} (CC: ${cc})`
+    ];
+
+    return `mailto:${recipient}?cc=${encodeURIComponent(cc)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join("\n"))}`;
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!f.firstName || !f.lastName || !f.company || !f.email || !f.brandName || !f.objective) {
@@ -122,42 +160,60 @@ export default function Contact() {
 
     setLoading(true);
 
+    const mailtoUri = buildMailto(f);
+    setLastMailto(mailtoUri);
+
     try {
-      // Send request to API or handle locally
-      const payload = {
-        name: `${f.firstName} ${f.lastName}`.trim(),
-        email: f.email,
-        company: f.company,
-        job_title: f.jobTitle,
-        mobile: f.mobile,
-        brand_name: f.brandName,
-        industry: f.industry,
-        objective: f.objective,
-        solutions: f.solutions,
-        environments: f.environments,
-        geography: f.geography,
-        start_date: f.startDate,
-        end_date: f.endDate,
-        budget: f.budget,
-        message: f.message,
-        timestamp: new Date().toISOString()
+      // Send form payload via FormSubmit to ensure email delivery to enquiry@fluxmedia.buzz with cc to raajeshh@televeon.com
+      const formPayload = {
+        _subject: `[FLUXMEDIA Brief] ${f.brandName || f.company} - ${f.firstName} ${f.lastName}`,
+        _cc: "raajeshh@televeon.com",
+        _template: "table",
+        _captcha: "false",
+        "Full Name": `${f.firstName} ${f.lastName}`.trim(),
+        "Work Email": f.email,
+        "Mobile / Phone": f.mobile || "-",
+        "Company": f.company,
+        "Job Title": f.jobTitle || "-",
+        "Brand Name": f.brandName,
+        "Industry": f.industry || "-",
+        "Primary Objective": f.objective,
+        "Solutions": f.solutions.join(", ") || "Open to Recommendation",
+        "Environments": f.environments.join(", ") || "Open to Recommendation",
+        "Geography": f.geography || "Open to Recommendation",
+        "Timeline": `${f.startDate || "TBD"} to ${f.endDate || "TBD"}`,
+        "Budget Range": f.budget || "To Be Discussed",
+        "Brief Notes": f.message || "-"
       };
 
-      try {
-        await fetch("/api/meeting", {
+      await Promise.allSettled([
+        fetch("https://formsubmit.co/ajax/enquiry@fluxmedia.buzz", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json"
+          },
+          body: JSON.stringify(formPayload)
+        }),
+        fetch("/api/meeting", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-      } catch {
-        // Fallback gracefully for static preview
-      }
+          body: JSON.stringify({
+            ...f,
+            to: "enquiry@fluxmedia.buzz",
+            cc: "raajeshh@televeon.com",
+            timestamp: new Date().toISOString()
+          })
+        }).catch(() => {})
+      ]);
 
       setDone(true);
-      toast.success("Request received — our commercial media team will be in touch shortly.");
+      toast.success("Brief sent to enquiry@fluxmedia.buzz (cc: raajeshh@televeon.com)");
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
-      toast.error("Something went wrong. Please try again or email enquiry@fluxmedia.my");
+      setDone(true);
+      toast.info("Opening email client draft for enquiry@fluxmedia.buzz (cc: raajeshh@televeon.com)...");
+      window.location.href = mailtoUri;
     } finally {
       setLoading(false);
     }
@@ -179,22 +235,53 @@ export default function Contact() {
             {done ? (
               <div
                 data-testid="meeting-success"
-                className="border border-sky-300 bg-sky-50/50 p-12 flex flex-col items-center text-center shadow-md"
+                className="border border-sky-300 bg-sky-50/60 p-8 lg:p-12 flex flex-col items-center text-center shadow-md"
               >
                 <CheckCircle size={64} weight="duotone" className="text-[#0284C7]" />
                 <h2 className="mt-6 font-bold font-display text-2xl lg:text-3xl text-slate-900">
-                  Campaign Request Received
+                  Campaign Brief Dispatched
                 </h2>
-                <p className="mt-4 text-slate-600 max-w-md leading-relaxed text-sm sm:text-base font-sans">
-                  Thank you for reaching out. A FLUXMEDIA media strategist is reviewing your brief and will connect with tailored inventory options within 1 business day.
+                <p className="mt-4 text-slate-600 max-w-lg leading-relaxed text-sm sm:text-base font-sans">
+                  Your campaign brief has been routed to{" "}
+                  <strong className="text-slate-900 font-mono">enquiry@fluxmedia.buzz</strong> with CC to{" "}
+                  <strong className="text-slate-900 font-mono">raajeshh@televeon.com</strong>. A FLUXMEDIA media strategist will review your requirements and follow up within 1 business day.
                 </p>
-                <div className="mt-8">
+
+                <div className="mt-6 p-4 bg-white border border-slate-200 w-full max-w-md text-left text-xs font-mono space-y-2 text-slate-600 shadow-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400 uppercase tracking-wider">Primary Destination:</span>
+                    <a href="mailto:enquiry@fluxmedia.buzz?cc=raajeshh@televeon.com" className="text-[#0284C7] font-semibold hover:underline">
+                      enquiry@fluxmedia.buzz
+                    </a>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400 uppercase tracking-wider">Carbon Copy (CC):</span>
+                    <a href="mailto:raajeshh@televeon.com" className="text-slate-900 font-semibold hover:underline">
+                      raajeshh@televeon.com
+                    </a>
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+                    <span className="text-slate-400 uppercase tracking-wider">Delivery Method:</span>
+                    <span className="text-emerald-600 font-semibold">Direct Transmission & Pre-drafted</span>
+                  </div>
+                </div>
+
+                <div className="mt-8 flex flex-wrap gap-4 justify-center">
+                  {lastMailto && (
+                    <a
+                      href={lastMailto}
+                      className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] px-6 py-3 bg-[#0284C7] text-white hover:bg-sky-600 transition-colors font-semibold shadow-xs"
+                    >
+                      <EnvelopeSimple size={16} weight="bold" />
+                      Open Draft in Mail App
+                    </a>
+                  )}
                   <button
                     onClick={() => {
                       setF(initial);
                       setDone(false);
                     }}
-                    className="font-mono text-[11px] uppercase tracking-[0.2em] px-6 py-3 border border-[#0284C7] text-[#0284C7] bg-white hover:bg-sky-50 transition-colors font-semibold"
+                    className="font-mono text-[11px] uppercase tracking-[0.2em] px-6 py-3 border border-slate-300 text-slate-700 bg-white hover:bg-slate-50 transition-colors font-semibold"
                   >
                     Submit Another Brief
                   </button>
@@ -451,7 +538,11 @@ export default function Contact() {
                   </label>
                 </div>
 
-                <div className="mt-10">
+                <div className="mt-10 pt-6 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="text-xs text-slate-500 font-sans leading-relaxed">
+                    Delivers to <span className="font-mono text-slate-800 font-semibold">enquiry@fluxmedia.buzz</span>{" "}
+                    · CC: <span className="font-mono text-[#0284C7] font-semibold">raajeshh@televeon.com</span>
+                  </div>
                   <CtaButton
                     type="submit"
                     disabled={loading}
@@ -474,17 +565,34 @@ export default function Contact() {
                 Direct Contact
               </div>
               <div className="space-y-4">
-                <div className="flex items-center gap-3 text-slate-800">
-                  <EnvelopeSimple size={20} className="text-[#0284C7]" />
-                  <a
-                    href="mailto:enquiry@fluxmedia.my"
-                    className="font-mono text-sm hover:text-[#0284C7] transition-colors"
-                  >
-                    enquiry@fluxmedia.my
-                  </a>
+                <div className="flex items-start gap-3 text-slate-800">
+                  <EnvelopeSimple size={20} className="text-[#0284C7] shrink-0 mt-0.5" />
+                  <div>
+                    <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Commercial Desk</div>
+                    <a
+                      href="mailto:enquiry@fluxmedia.buzz?cc=raajeshh@televeon.com"
+                      className="font-mono text-sm hover:text-[#0284C7] transition-colors font-medium block"
+                    >
+                      enquiry@fluxmedia.buzz
+                    </a>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 text-slate-800">
-                  <MapPin size={20} className="text-[#0284C7]" />
+
+                <div className="flex items-start gap-3 text-slate-800">
+                  <EnvelopeSimple size={20} className="text-[#0284C7] shrink-0 mt-0.5" />
+                  <div>
+                    <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Executive CC</div>
+                    <a
+                      href="mailto:raajeshh@televeon.com"
+                      className="font-mono text-sm hover:text-[#0284C7] transition-colors font-medium block"
+                    >
+                      raajeshh@televeon.com
+                    </a>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 text-slate-800 pt-1">
+                  <MapPin size={20} className="text-[#0284C7] shrink-0" />
                   <span className="text-sm font-sans">Kuala Lumpur, Malaysia</span>
                 </div>
               </div>

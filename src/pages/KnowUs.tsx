@@ -103,20 +103,17 @@ export default function KnowUs() {
           <div className="lg:col-span-7 space-y-6 text-slate-600 leading-relaxed font-sans text-base">
             <Reveal delay={0.1}>
               <p className="text-lg text-slate-900 font-medium">
-                FLUXMEDIA operates as a collaborative consortium bringing together expertise from{" "}
-                <span className="text-[#0284C7] font-semibold">Televeon Sdn Bhd</span>,{" "}
-                <span className="text-[#0284C7] font-semibold">Sistem Perintis Sdn Bhd</span>, and{" "}
-                <span className="text-[#0284C7] font-semibold">MyRodeo Sdn Bhd</span>.
+                FLUXMEDIA is a specialized SPV media company that operates digital screens in multiple formats across rail networks, in-cab spaces, and transit outdoor environments.
               </p>
             </Reveal>
             <Reveal delay={0.15}>
               <p>
-                We have partnered and collaborated with prominent industry players to create an integrated platform capable of delivering end-to-end media solutions — from inventory access and screen deployment to advertising sales, programmatic activation, technology and monetisation.
+                We have partnered and collaborated with prominent industry players to create an integrated platform capable of delivering end-to-end media solutions — from inventory access and screen deployment to advertising sales, programmatic activation, technology, and monetisation.
               </p>
             </Reveal>
             <Reveal delay={0.2}>
               <p>
-                Our objective is simple: help media owners maximise the commercial value of their physical and digital assets while giving advertisers a more connected way to reach audiences in motion.
+                By bridging the gap between physical transit environments and dynamic digital content, we empower brands to connect with highly captive, on-the-go audiences in real time. Our mission is to transform everyday commuter journeys into engaging, high-impact brand experiences that drive measurable commercial value for both advertisers and media owners alike.
               </p>
             </Reveal>
           </div>
@@ -145,7 +142,7 @@ export default function KnowUs() {
                     </span>
                     <span className="text-[10px] font-mono text-slate-500 uppercase tracking-[0.2em]">DIRECT I/O</span>
                   </div>
-                  <h3 className="text-2xl font-bold font-display text-slate-900 mb-3">Direct Sales</h3>
+                  <h3 className="text-2xl font-bold font-display text-slate-900 mb-3">Network Sales</h3>
                   <p className="text-sm text-slate-600 leading-relaxed mb-6">
                     Our commercial team works directly with advertisers and agencies to develop tailored campaigns using available FLUXMEDIA inventory.
                   </p>

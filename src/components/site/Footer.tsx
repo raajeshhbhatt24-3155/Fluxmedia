@@ -63,10 +63,16 @@ export const Footer: React.FC = () => {
                 Commercial Desk
               </div>
               <a
-                href="mailto:enquiry@fluxmedia.my"
-                className="text-base font-semibold text-white hover:text-[#38BDF8] transition-colors font-mono"
+                href="mailto:enquiry@fluxmedia.buzz?cc=raajeshh@televeon.com"
+                className="text-base font-semibold text-white hover:text-[#38BDF8] transition-colors font-mono block"
               >
-                enquiry@fluxmedia.my
+                enquiry@fluxmedia.buzz
+              </a>
+              <a
+                href="mailto:raajeshh@televeon.com"
+                className="text-xs text-slate-400 hover:text-[#38BDF8] transition-colors font-mono mt-1 block"
+              >
+                cc: raajeshh@televeon.com
               </a>
               <div className="mt-2 text-xs text-slate-400 font-sans">
                 Kuala Lumpur & Klang Valley Transit Operations
@@ -166,7 +172,7 @@ export const Footer: React.FC = () => {
                     Creative materials must comply with content standards regarding safety, cultural sensitivity, and copyright. Direct I/O bookings and programmatic DSP buys are governed by standardized service level agreements (SLAs) with verified proof-of-play guarantees.
                   </p>
                   <p>
-                    For detailed rate cards, technical broadcast specifications, or programmatic seat onboarding, please reach out to our commercial desk at enquiry@fluxmedia.my.
+                    For detailed rate cards, technical broadcast specifications, or programmatic seat onboarding, please reach out to our commercial desk at enquiry@fluxmedia.buzz.
                   </p>
                 </div>
               </div>
