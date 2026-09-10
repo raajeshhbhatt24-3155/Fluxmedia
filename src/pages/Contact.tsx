@@ -1,6 +1,18 @@
 import React, { useState } from "react";
 import { toast } from "sonner";
-import { CheckCircle, EnvelopeSimple, Phone, MapPin, Sparkle, Buildings } from "@phosphor-icons/react";
+import {
+  CheckCircle,
+  EnvelopeSimple,
+  Phone,
+  MapPin,
+  Sparkle,
+  Buildings,
+  Copy,
+  Check,
+  ArrowSquareOut,
+  WarningCircle,
+  PaperPlaneTilt
+} from "@phosphor-icons/react";
 import useSEO from "@/hooks/useSEO";
 import { MEDIA } from "@/constants/media";
 import { PageHero, Eyebrow, SectionTitle, CtaButton } from "@/components/site/ui";
@@ -99,7 +111,13 @@ export default function Contact() {
   const [f, setF] = useState<FormData>(initial);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [deliveryStatus, setDeliveryStatus] = useState<"api_sent" | "drafted">("drafted");
+  const [copied, setCopied] = useState(false);
+  const [preparedSubject, setPreparedSubject] = useState("");
+  const [preparedBody, setPreparedBody] = useState("");
   const [lastMailto, setLastMailto] = useState("");
+  const [gmailLink, setGmailLink] = useState("");
+  const [outlookLink, setOutlookLink] = useState("");
 
   const set =
     (k: keyof FormData) =>
@@ -114,59 +132,77 @@ export default function Contact() {
     }));
   };
 
-  const buildMailto = (data: FormData) => {
+  const buildEmailData = (data: FormData) => {
     const recipient = "enquiry@fluxmedia.buzz";
     const cc = "raajeshh@televeon.com";
-    const subject = `[Campaign Brief] ${data.brandName || data.company} - ${data.firstName} ${data.lastName}`;
+    const subject = `[FLUXMEDIA Campaign Brief] ${data.brandName || data.company} - ${data.firstName} ${data.lastName}`;
     const bodyLines = [
       "FLUXMEDIA CAMPAIGN BRIEF & MEETING REQUEST",
       "===========================================",
       `Primary Recipient: ${recipient}`,
-      `CC: ${cc}`,
+      `Carbon Copy (CC): ${cc}`,
       "",
       "01 // CONTACT DETAILS",
-      `Name: ${data.firstName} ${data.lastName}`.trim(),
-      `Company: ${data.company}`,
+      `Full Name: ${data.firstName} ${data.lastName}`.trim(),
+      `Company Name: ${data.company}`,
       `Job Title: ${data.jobTitle || "Not specified"}`,
-      `Email: ${data.email}`,
+      `Work Email: ${data.email}`,
       `Mobile / WhatsApp: ${data.mobile || "Not specified"}`,
       "",
       "02 // CAMPAIGN PARAMETERS",
       `Brand / Advertiser: ${data.brandName}`,
-      `Industry: ${data.industry || "Not specified"}`,
+      `Industry Sector: ${data.industry || "Not specified"}`,
       `Primary Objective: ${data.objective}`,
       `Requested Solutions: ${data.solutions.length ? data.solutions.join(", ") : "Open to Recommendation"}`,
       `Target Environments: ${data.environments.length ? data.environments.join(", ") : "Open to Recommendation"}`,
       `Geography: ${data.geography || "Open to Recommendation"}`,
-      `Flight Dates: ${data.startDate || "TBD"} to ${data.endDate || "TBD"}`,
+      `Flight Schedule: ${data.startDate || "TBD"} to ${data.endDate || "TBD"}`,
       `Estimated Budget: ${data.budget || "To Be Discussed"}`,
       "",
       "03 // ADDITIONAL BRIEF / NOTES",
-      data.message || "No additional brief provided.",
+      data.message || "No additional notes provided.",
       "",
       "===========================================",
-      `Transmitted via FLUXMEDIA Portal to ${recipient} (CC: ${cc})`
+      `Transmitted via FLUXMEDIA Web Portal`
     ];
 
-    return `mailto:${recipient}?cc=${encodeURIComponent(cc)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join("\n"))}`;
+    const bodyText = bodyLines.join("\n");
+    const mailtoUri = `mailto:${recipient}?cc=${encodeURIComponent(cc)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`;
+    const gUri = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(recipient)}&cc=${encodeURIComponent(cc)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`;
+    const oUri = `https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(recipient)}&cc=${encodeURIComponent(cc)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`;
+
+    return { recipient, cc, subject, bodyText, mailtoUri, gUri, oUri };
+  };
+
+  const handleCopy = () => {
+    const textToCopy = `To: enquiry@fluxmedia.buzz\nCC: raajeshh@televeon.com\nSubject: ${preparedSubject}\n\n${preparedBody}`;
+    navigator.clipboard.writeText(textToCopy);
+    setCopied(true);
+    toast.success("Full brief copied to clipboard");
+    setTimeout(() => setCopied(false), 2500);
   };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!f.firstName || !f.lastName || !f.company || !f.email || !f.brandName || !f.objective) {
-      toast.error("Please complete the required fields marked with *");
+      toast.error("Please complete all required fields marked with *");
       return;
     }
 
     setLoading(true);
 
-    const mailtoUri = buildMailto(f);
-    setLastMailto(mailtoUri);
+    const emailData = buildEmailData(f);
+    setPreparedSubject(emailData.subject);
+    setPreparedBody(emailData.bodyText);
+    setLastMailto(emailData.mailtoUri);
+    setGmailLink(emailData.gUri);
+    setOutlookLink(emailData.oUri);
+
+    let sentViaRelay = false;
 
     try {
-      // Send form payload via FormSubmit to ensure email delivery to enquiry@fluxmedia.buzz with cc to raajeshh@televeon.com
       const formPayload = {
-        _subject: `[FLUXMEDIA Brief] ${f.brandName || f.company} - ${f.firstName} ${f.lastName}`,
+        _subject: emailData.subject,
         _cc: "raajeshh@televeon.com",
         _template: "table",
         _captcha: "false",
@@ -186,37 +222,36 @@ export default function Contact() {
         "Brief Notes": f.message || "-"
       };
 
-      await Promise.allSettled([
-        fetch("https://formsubmit.co/ajax/enquiry@fluxmedia.buzz", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json"
-          },
-          body: JSON.stringify(formPayload)
-        }),
-        fetch("/api/meeting", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...f,
-            to: "enquiry@fluxmedia.buzz",
-            cc: "raajeshh@televeon.com",
-            timestamp: new Date().toISOString()
-          })
-        }).catch(() => {})
-      ]);
+      const res = await fetch("https://formsubmit.co/ajax/enquiry@fluxmedia.buzz", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json"
+        },
+        body: JSON.stringify(formPayload)
+      });
 
-      setDone(true);
-      toast.success("Brief sent to enquiry@fluxmedia.buzz (cc: raajeshh@televeon.com)");
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      const data = await res.json().catch(() => null);
+      if (data && (data.success === "true" || data.success === true)) {
+        sentViaRelay = true;
+      }
     } catch {
-      setDone(true);
-      toast.info("Opening email client draft for enquiry@fluxmedia.buzz (cc: raajeshh@televeon.com)...");
-      window.location.href = mailtoUri;
-    } finally {
-      setLoading(false);
+      // Network or CORS error
     }
+
+    if (sentViaRelay) {
+      setDeliveryStatus("api_sent");
+      toast.success("Brief sent to enquiry@fluxmedia.buzz (cc: raajeshh@televeon.com)");
+    } else {
+      setDeliveryStatus("drafted");
+      // Synchronously trigger email client
+      window.location.href = emailData.mailtoUri;
+      toast.info("Opening email draft for enquiry@fluxmedia.buzz (cc: raajeshh@televeon.com)...");
+    }
+
+    setDone(true);
+    setLoading(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
@@ -237,20 +272,37 @@ export default function Contact() {
                 data-testid="meeting-success"
                 className="border border-sky-300 bg-sky-50/60 p-8 lg:p-12 flex flex-col items-center text-center shadow-md"
               >
-                <CheckCircle size={64} weight="duotone" className="text-[#0284C7]" />
+                {deliveryStatus === "api_sent" ? (
+                  <CheckCircle size={64} weight="duotone" className="text-emerald-600" />
+                ) : (
+                  <PaperPlaneTilt size={64} weight="duotone" className="text-[#0284C7]" />
+                )}
+
                 <h2 className="mt-6 font-bold font-display text-2xl lg:text-3xl text-slate-900">
-                  Campaign Brief Dispatched
+                  {deliveryStatus === "api_sent"
+                    ? "Campaign Brief Dispatched Successfully"
+                    : "Campaign Brief Ready to Send"}
                 </h2>
                 <p className="mt-4 text-slate-600 max-w-lg leading-relaxed text-sm sm:text-base font-sans">
-                  Your campaign brief has been routed to{" "}
-                  <strong className="text-slate-900 font-mono">enquiry@fluxmedia.buzz</strong> with CC to{" "}
-                  <strong className="text-slate-900 font-mono">raajeshh@televeon.com</strong>. A FLUXMEDIA media strategist will review your requirements and follow up within 1 business day.
+                  {deliveryStatus === "api_sent" ? (
+                    <>
+                      Your campaign brief was routed directly to{" "}
+                      <strong className="text-slate-900 font-mono">enquiry@fluxmedia.buzz</strong> with CC to{" "}
+                      <strong className="text-slate-900 font-mono">raajeshh@televeon.com</strong>. Our media planning team will review your requirements and respond within 1 business day.
+                    </>
+                  ) : (
+                    <>
+                      Your brief has been compiled for{" "}
+                      <strong className="text-slate-900 font-mono">enquiry@fluxmedia.buzz</strong> with CC to{" "}
+                      <strong className="text-slate-900 font-mono">raajeshh@televeon.com</strong>. Your mail client was prompted. Click any service below to review or send:
+                    </>
+                  )}
                 </p>
 
-                <div className="mt-6 p-4 bg-white border border-slate-200 w-full max-w-md text-left text-xs font-mono space-y-2 text-slate-600 shadow-xs">
+                <div className="mt-6 p-4 bg-white border border-slate-200 w-full max-w-lg text-left text-xs font-mono space-y-2 text-slate-600 shadow-xs">
                   <div className="flex justify-between items-center">
                     <span className="text-slate-400 uppercase tracking-wider">Primary Destination:</span>
-                    <a href="mailto:enquiry@fluxmedia.buzz?cc=raajeshh@televeon.com" className="text-[#0284C7] font-semibold hover:underline">
+                    <a href={`mailto:enquiry@fluxmedia.buzz?cc=raajeshh@televeon.com`} className="text-[#0284C7] font-semibold hover:underline">
                       enquiry@fluxmedia.buzz
                     </a>
                   </div>
@@ -261,29 +313,76 @@ export default function Contact() {
                     </a>
                   </div>
                   <div className="flex justify-between items-center pt-2 border-t border-slate-100">
-                    <span className="text-slate-400 uppercase tracking-wider">Delivery Method:</span>
-                    <span className="text-emerald-600 font-semibold">Direct Transmission & Pre-drafted</span>
+                    <span className="text-slate-400 uppercase tracking-wider">Campaign Subject:</span>
+                    <span className="text-slate-800 font-semibold truncate max-w-[280px]">{preparedSubject}</span>
                   </div>
                 </div>
 
-                <div className="mt-8 flex flex-wrap gap-4 justify-center">
+                <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
                   {lastMailto && (
                     <a
                       href={lastMailto}
-                      className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] px-6 py-3 bg-[#0284C7] text-white hover:bg-sky-600 transition-colors font-semibold shadow-xs"
+                      className="inline-flex items-center justify-center gap-2 font-mono text-[11px] uppercase tracking-[0.15em] px-4 py-3 bg-[#0284C7] text-white hover:bg-sky-600 transition-colors font-semibold shadow-xs"
                     >
-                      <EnvelopeSimple size={16} weight="bold" />
-                      Open Draft in Mail App
+                      <EnvelopeSimple size={18} weight="bold" />
+                      Open Mail App
                     </a>
                   )}
+                  {gmailLink && (
+                    <a
+                      href={gmailLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-2 font-mono text-[11px] uppercase tracking-[0.15em] px-4 py-3 bg-red-600 text-white hover:bg-red-700 transition-colors font-semibold shadow-xs"
+                    >
+                      <ArrowSquareOut size={18} weight="bold" />
+                      Send via Gmail
+                    </a>
+                  )}
+                  {outlookLink && (
+                    <a
+                      href={outlookLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-2 font-mono text-[11px] uppercase tracking-[0.15em] px-4 py-3 bg-[#0078D4] text-white hover:bg-sky-700 transition-colors font-semibold shadow-xs"
+                    >
+                      <ArrowSquareOut size={18} weight="bold" />
+                      Send via Outlook
+                    </a>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleCopy}
+                    className="inline-flex items-center justify-center gap-2 font-mono text-[11px] uppercase tracking-[0.15em] px-4 py-3 border border-slate-300 text-slate-700 bg-white hover:bg-slate-50 transition-colors font-semibold shadow-xs"
+                  >
+                    {copied ? <Check size={18} className="text-emerald-600" weight="bold" /> : <Copy size={18} />}
+                    {copied ? "Copied!" : "Copy Full Brief"}
+                  </button>
+                </div>
+
+                {deliveryStatus === "drafted" && (
+                  <div className="mt-8 p-4 bg-amber-50/90 border border-amber-200 text-left text-xs font-sans text-amber-900 leading-relaxed max-w-lg shadow-xs">
+                    <div className="flex gap-2 items-start">
+                      <WarningCircle size={18} weight="fill" className="text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold mb-1">Notice for enquiry@fluxmedia.buzz inbox administrator:</p>
+                        <p className="text-amber-800">
+                          FormSubmit requires a one-time activation. An email titled <strong className="text-amber-950">&quot;Action Required: Confirm your form&quot;</strong> was delivered to <span className="font-mono font-semibold">enquiry@fluxmedia.buzz</span>. Click the activation link in that email to enable automated background web delivery without triggering email clients.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-8">
                   <button
                     onClick={() => {
                       setF(initial);
                       setDone(false);
                     }}
-                    className="font-mono text-[11px] uppercase tracking-[0.2em] px-6 py-3 border border-slate-300 text-slate-700 bg-white hover:bg-slate-50 transition-colors font-semibold"
+                    className="font-mono text-[11px] uppercase tracking-[0.2em] px-6 py-2.5 text-slate-500 hover:text-slate-900 underline transition-colors"
                   >
-                    Submit Another Brief
+                    ← Submit Another Brief
                   </button>
                 </div>
               </div>
@@ -540,8 +639,19 @@ export default function Contact() {
 
                 <div className="mt-10 pt-6 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="text-xs text-slate-500 font-sans leading-relaxed">
-                    Delivers to <span className="font-mono text-slate-800 font-semibold">enquiry@fluxmedia.buzz</span>{" "}
-                    · CC: <span className="font-mono text-[#0284C7] font-semibold">raajeshh@televeon.com</span>
+                    <div>
+                      Delivers to <span className="font-mono text-slate-800 font-semibold">enquiry@fluxmedia.buzz</span>{" "}
+                      · CC: <span className="font-mono text-[#0284C7] font-semibold">raajeshh@televeon.com</span>
+                    </div>
+                    <div className="mt-1 text-[11px] text-slate-400">
+                      Direct email:{" "}
+                      <a
+                        href="mailto:enquiry@fluxmedia.buzz?cc=raajeshh@televeon.com&subject=Transit%20Campaign%20Enquiry%20-%20FLUXMEDIA"
+                        className="text-[#0284C7] hover:underline"
+                      >
+                        enquiry@fluxmedia.buzz (cc: raajeshh@televeon.com)
+                      </a>
+                    </div>
                   </div>
                   <CtaButton
                     type="submit"
@@ -551,7 +661,7 @@ export default function Contact() {
                     className="w-full sm:w-auto"
                     testid="submit-brief-btn"
                   >
-                    {loading ? "SUBMITTING BRIEF..." : "SUBMIT MEETING REQUEST"}
+                    {loading ? "PREPARING DISPATCH..." : "SUBMIT MEETING REQUEST"}
                   </CtaButton>
                 </div>
               </form>
