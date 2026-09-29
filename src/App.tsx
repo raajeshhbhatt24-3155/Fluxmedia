@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { Analytics } from "@vercel/analytics/react";
 import { Toaster } from "@/components/ui/sonner";
 import useLenis from "@/hooks/useLenis";
 import { Header } from "@/components/site/Header";
@@ -60,6 +61,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <MainLayout />
+      <Analytics />
     </BrowserRouter>
   );
 }
